@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "gm": "^1.23.1",
+    "minio": "^6.0.0"
+  },
+  "description": "Generate smaller versions of images in Minio",
+  "license": "Unlicense",
+  "main": "./index.js",
+  "name": "minio-js-resizer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minio/minio-js.git"
+  }
+}
