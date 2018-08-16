@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- An option for an extra sync during startup
+
 ### Fixed
 - Fix handling of paths that contain spaces
 

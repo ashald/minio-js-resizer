@@ -8,6 +8,7 @@ let dstBucket = process.env.RESIZER_DESTINATION;
 
 let maxWidth = parseInt(process.env.RESIZER_MAX_WIDTH || "2560");
 let maxHeight = parseInt(process.env.RESIZER_MAX_HEIGHT || "1600");
+let startupSync = process.env.RESIZER_STARTUP_SYNC === "true";
 
 let minioConfig = {
     endPoint: process.env.RESIZER_ENDPOINT,
@@ -55,6 +56,18 @@ function resize(src, dst, objectPath) {
 }
 
 listener.on('notification', record => resize(srcBucket, dstBucket, urlDecode(record.s3.object.key)));
+
+if (startupSync) {
+  mc.listObjects(srcBucket, '', true).on('data', obj => {
+    let objectPath = obj.name;
+    mc.statObject(dstBucket, objectPath, (err, stat) => {
+      if (err) {
+        console.log(`Path ${join(dstBucket, objectPath)} does not exist - resizing from ${join(srcBucket)}`);
+        resize(srcBucket, dstBucket, objectPath);
+      }
+    });
+  });
+}
 
 process.on("SIGINT", function () {
     listener.stop();
