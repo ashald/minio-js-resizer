@@ -23,33 +23,38 @@ function join(...arguments) {
     return "'" + arguments.join(":") + "'";
 }
 
+function urlDecode(str) {
+	return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+}
+
 // Main
 const mc = new Minio.Client(minioConfig);
 const listener = mc.listenBucketNotification(srcBucket, "", "", ["s3:ObjectCreated:*"]);
 console.log(`Listening on ${join(srcBucket)} for events`);
 
-listener.on('notification', record => {
-    let objectPath = decodeURIComponent(record.s3.object.key);
-    mc.getObject(srcBucket, objectPath,
-        function (err, dataStream) {
-            console.log(`Processing ${join(dstBucket, objectPath)}`);
-            if (err) {
-                return console.log(`Error retrieving ${join(srcBucket, objectPath)}: ${join(err)}`);
-            }
+function resize(src, dst, objectPath) {
+  mc.getObject(srcBucket, objectPath,
+      function (err, dataStream) {
+          console.log(`Processing ${join(dstBucket, objectPath)}`);
+          if (err) {
+              return console.log(`Error retrieving ${join(srcBucket, objectPath)}: ${join(err)}`);
+          }
 
-            let outputStream = gm(dataStream).resize(maxWidth, maxHeight, ">").stream();
+          let outputStream = gm(dataStream).resize(maxWidth, maxHeight, ">").stream();
 
-            mc.putObject(dstBucket,
-                objectPath,
-                outputStream,
-                (err, etag) => {
-                    if (err) {
-                        return console.log(`Error saving ${join(dstBucket, objectPath)}: ${join(err)}`);
-                    }
-                    console.log(`Successfully uploaded ${join(dstBucket, objectPath)} with md5sum ${join(etag)}`);
-                });
-        });
-});
+          mc.putObject(dstBucket,
+              objectPath,
+              outputStream,
+              (err, etag) => {
+                  if (err) {
+                      return console.log(`Error saving ${join(dstBucket, objectPath)}: ${join(err)}`);
+                  }
+                  console.log(`Successfully uploaded ${join(dstBucket, objectPath)} with md5sum ${join(etag)}`);
+              });
+      });
+}
+
+listener.on('notification', record => resize(srcBucket, dstBucket, urlDecode(record.s3.object.key)));
 
 process.on("SIGINT", function () {
     listener.stop();
